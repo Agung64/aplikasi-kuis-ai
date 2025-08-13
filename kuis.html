@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kuis Interaktif berbasis Video (dengan AI)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .answer-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .correct {
+            background-color: #22c55e !important; /* green-500 */
+            color: white !important;
+            border-color: #16a34a !important; /* green-600 */
+        }
+        .incorrect {
+            background-color: #ef4444 !important; /* red-500 */
+            color: white !important;
+            border-color: #dc2626 !important; /* red-600 */
+        }
+        .loader {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #3498db;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl p-6 md:p-10 space-y-8">
+
+        <!-- Bagian Judul dan Input URL -->
+        <div id="setup-container">
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-slate-900 mb-2">Platform Kuis Interaktif (AI)</h1>
+            <p class="text-center text-slate-500 mb-8">Masukkan link video YouTube, tonton materi, lalu uji pemahaman Anda!</p>
+            
+            <div class="flex flex-col sm:flex-row gap-3">
+                <input type="text" id="youtube-url" placeholder="Contoh: https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="flex-grow p-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
+                <button id="load-video-btn" class="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-md">
+                    Muat Video
+                </button>
+            </div>
+        </div>
+
+        <!-- Bagian Video Player dan Pembuatan Kuis -->
+        <div id="video-quiz-maker-container" class="hidden space-y-6">
+            <div class="aspect-w-16 aspect-h-9 bg-slate-200 rounded-lg overflow-hidden shadow-lg">
+                <iframe id="youtube-player" width="100%" height="100%" src="" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+            </div>
+            
+            <!-- Opsi Pembuatan Kuis -->
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-6 space-y-4">
+                <h3 class="text-xl font-bold text-slate-800">Langkah 2: Buat Pertanyaan Kuis</h3>
+                <p class="text-slate-600">Tempelkan (paste) transkrip/naskah dari video di bawah ini, lalu klik tombol untuk membuat pertanyaan secara otomatis menggunakan AI.</p>
+                <div class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded-md" role="alert">
+                  <p class="font-bold">Cara Mendapatkan Transkrip:</p>
+                  <p>Di halaman YouTube, klik tombol '...' di bawah video, lalu pilih 'Tampilkan transkrip'. Salin semua teks transkrip tersebut.</p>
+                </div>
+                <textarea id="transcript-input" rows="8" class="w-full p-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition" placeholder="Tempelkan transkrip video di sini..."></textarea>
+                <button id="generate-quiz-btn" class="w-full bg-teal-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-teal-600 transition-all duration-300 shadow-lg">
+                    Buat Pertanyaan Kuis dengan AI
+                </button>
+            </div>
+
+            <!-- Loading Indicator -->
+            <div id="loading-container" class="hidden text-center">
+                <div class="loader"></div>
+                <p class="text-slate-600 font-semibold">AI sedang membuat pertanyaan... Mohon tunggu sebentar.</p>
+            </div>
+
+            <!-- Tombol Mulai Kuis (muncul setelah AI selesai) -->
+            <button id="start-quiz-btn" class="w-full bg-green-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-green-600 transition-all duration-300 text-xl shadow-lg hidden">
+                Mulai Kuis Sekarang!
+            </button>
+        </div>
+
+        <!-- Bagian Kuis -->
+        <div id="quiz-container" class="hidden">
+            <!-- Konten kuis sama seperti sebelumnya -->
+            <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl md:text-2xl font-bold text-slate-900">Pertanyaan <span id="question-number"></span> dari 20</h2>
+                    <div class="text-lg font-semibold bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full">Skor: <span id="score">0</span></div>
+                </div>
+                <p id="question-text" class="text-lg text-slate-700 min-h-[60px]"></p>
+            </div>
+            <div id="answer-buttons" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+            <div class="mt-8 flex justify-end">
+                <button id="next-btn" class="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-md hidden">Lanjut</button>
+            </div>
+        </div>
+
+        <!-- Bagian Hasil -->
+        <div id="result-container" class="hidden text-center p-8 bg-slate-50 rounded-2xl border-2">
+            <h2 id="result-title" class="text-4xl font-bold mb-4"></h2>
+            <p id="result-message" class="text-xl text-slate-600 mb-2"></p>
+            <p class="text-5xl font-bold text-indigo-600 mb-8" id="final-score"></p>
+            <button id="retry-btn" class="bg-indigo-600 text-white font-semibold py-3 px-8 rounded-lg hover:bg-indigo-700 transition-all duration-300 shadow-md">Ulangi Pembelajaran & Kuis</button>
+        </div>
+        
+        <!-- Message Box for errors -->
+        <div id="message-box" class="hidden fixed top-5 right-5 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50">
+            <p id="message-text"></p>
+        </div>
+
+    </div>
+
+    <script>
+        // Variabel global untuk menampung data kuis yang dibuat oleh AI
+        let quizData = [];
+
+        // Elemen-elemen UI
+        const setupContainer = document.getElementById('setup-container');
+        const videoQuizMakerContainer = document.getElementById('video-quiz-maker-container');
+        const quizContainer = document.getElementById('quiz-container');
+        const resultContainer = document.getElementById('result-container');
+        const loadingContainer = document.getElementById('loading-container');
+        
+        const loadVideoBtn = document.getElementById('load-video-btn');
+        const youtubeUrlInput = document.getElementById('youtube-url');
+        const youtubePlayer = document.getElementById('youtube-player');
+        
+        const transcriptInput = document.getElementById('transcript-input');
+        const generateQuizBtn = document.getElementById('generate-quiz-btn');
+        const startQuizBtn = document.getElementById('start-quiz-btn');
+        
+        const questionNumberEl = document.getElementById('question-number');
+        const scoreEl = document.getElementById('score');
+        const questionTextEl = document.getElementById('question-text');
+        const answerButtonsEl = document.getElementById('answer-buttons');
+        const nextBtn = document.getElementById('next-btn');
+        
+        const resultTitleEl = document.getElementById('result-title');
+        const resultMessageEl = document.getElementById('result-message');
+        const finalScoreEl = document.getElementById('final-score');
+        const retryBtn = document.getElementById('retry-btn');
+
+        const messageBox = document.getElementById('message-box');
+        const messageText = document.getElementById('message-text');
+
+        let currentQuestionIndex = 0;
+        let score = 0;
+        const PASSING_PERCENTAGE = 70;
+
+        // Fungsi untuk menampilkan pesan error
+        function showMessage(message, isError = true) {
+            messageText.innerText = message;
+            messageBox.classList.remove('hidden', 'bg-red-500', 'bg-green-500');
+            messageBox.classList.add(isError ? 'bg-red-500' : 'bg-green-500');
+            setTimeout(() => {
+                messageBox.classList.add('hidden');
+            }, 5000);
+        }
+
+        // Fungsi untuk mengekstrak ID video dari URL YouTube
+        function getYoutubeVideoId(url) {
+            const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
+            const match = url.match(youtubeRegex);
+            return match ? match[1] : null;
+        }
+
+        // Event listener untuk tombol muat video
+        loadVideoBtn.addEventListener('click', () => {
+            const url = youtubeUrlInput.value;
+            const videoId = getYoutubeVideoId(url);
+            if (videoId) {
+                youtubePlayer.src = `https://www.youtube.com/embed/${videoId}`;
+                setupContainer.classList.add('hidden');
+                videoQuizMakerContainer.classList.remove('hidden');
+            } else {
+                showMessage('URL YouTube tidak valid. Mohon periksa kembali.');
+            }
+        });
+
+        // Event listener untuk tombol buat kuis dengan AI
+        generateQuizBtn.addEventListener('click', async () => {
+            const transcript = transcriptInput.value.trim();
+            if (transcript.length < 100) {
+                showMessage('Transkrip terlalu pendek. Mohon tempelkan transkrip yang lebih lengkap.');
+                return;
+            }
+            
+            loadingContainer.classList.remove('hidden');
+            generateQuizBtn.disabled = true;
+            generateQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+            try {
+                // Panggil Gemini API untuk membuat pertanyaan
+                const generatedQuestions = await callGeminiAPI(transcript);
+                if (generatedQuestions && generatedQuestions.length > 0) {
+                    quizData = generatedQuestions;
+                    showMessage(`Berhasil membuat ${quizData.length} pertanyaan!`, false);
+                    startQuizBtn.classList.remove('hidden');
+                    // Sembunyikan tombol generate dan textarea setelah berhasil
+                    generateQuizBtn.parentElement.classList.add('hidden');
+                } else {
+                    throw new Error("AI tidak dapat menghasilkan pertanyaan dari teks yang diberikan.");
+                }
+            } catch (error) {
+                console.error("Error generating quiz:", error);
+                showMessage(`Terjadi kesalahan saat membuat kuis: ${error.message}`);
+            } finally {
+                loadingContainer.classList.add('hidden');
+                generateQuizBtn.disabled = false;
+                generateQuizBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        });
+
+        // --- FUNGSI UTAMA: MEMANGGIL GEMINI API ---
+        async function callGeminiAPI(text) {
+            // API Key dibiarkan kosong, akan diisi otomatis oleh environment
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const prompt = `
+                Berdasarkan transkrip video berikut, buatlah 20 pertanyaan kuis pilihan ganda dalam Bahasa Indonesia. 
+                Setiap pertanyaan harus memiliki 4 pilihan jawaban, dan hanya satu jawaban yang benar.
+                Pastikan pertanyaan relevan dengan isi transkrip.
+                
+                Transkrip:
+                ---
+                ${text}
+                ---
+            `;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        description: "Daftar 20 pertanyaan kuis.",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                question: { type: "STRING", description: "Teks pertanyaan." },
+                                answers: {
+                                    type: "ARRAY",
+                                    description: "Daftar 4 pilihan jawaban.",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            text: { type: "STRING", description: "Teks pilihan jawaban." },
+                                            correct: { type: "BOOLEAN", description: "Menandakan apakah jawaban ini benar." }
+                                        },
+                                        required: ["text", "correct"]
+                                    }
+                                }
+                            },
+                            required: ["question", "answers"]
+                        }
+                    }
+                }
+            };
+            
+            // Implementasi exponential backoff untuk retry
+            let response;
+            let retries = 3;
+            let delay = 1000;
+            while (retries > 0) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        const result = await response.json();
+                        const responseText = result.candidates[0].content.parts[0].text;
+                        return JSON.parse(responseText);
+                    } else if (response.status === 429 || response.status >= 500) {
+                        // Retry for rate limiting or server errors
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    } else {
+                        // Don't retry for other client-side errors
+                        const errorResult = await response.json();
+                        throw new Error(errorResult.error?.message || `HTTP error! status: ${response.status}`);
+                    }
+                } catch (error) {
+                    retries--;
+                    if (retries === 0) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
+                }
+            }
+        }
+        // --- AKHIR FUNGSI GEMINI API ---
+
+        startQuizBtn.addEventListener('click', startQuiz);
+        nextBtn.addEventListener('click', handleNextButton);
+        retryBtn.addEventListener('click', restartQuiz);
+
+        function startQuiz() {
+            if (quizData.length === 0) {
+                showMessage("Tidak ada pertanyaan untuk dimulai. Mohon buat pertanyaan terlebih dahulu.");
+                return;
+            }
+            videoQuizMakerContainer.classList.add('hidden');
+            quizContainer.classList.remove('hidden');
+            currentQuestionIndex = 0;
+            score = 0;
+            scoreEl.innerText = score;
+            showQuestion();
+        }
+
+        function showQuestion() {
+            resetState();
+            const currentQuestion = quizData[currentQuestionIndex];
+            questionNumberEl.innerText = currentQuestionIndex + 1;
+            questionTextEl.innerText = currentQuestion.question;
+
+            currentQuestion.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.innerText = answer.text;
+                button.classList.add('answer-btn', 'w-full', 'p-4', 'border-2', 'rounded-lg', 'text-left', 'hover:bg-indigo-100', 'hover:border-indigo-400');
+                if (answer.correct) {
+                    button.dataset.correct = answer.correct;
+                }
+                button.addEventListener('click', selectAnswer);
+                answerButtonsEl.appendChild(button);
+            });
+        }
+
+        function resetState() {
+            nextBtn.classList.add('hidden');
+            while (answerButtonsEl.firstChild) {
+                answerButtonsEl.removeChild(answerButtonsEl.firstChild);
+            }
+        }
+
+        function selectAnswer(e) {
+            const selectedBtn = e.target;
+            const isCorrect = selectedBtn.dataset.correct === "true";
+
+            if (isCorrect) {
+                score++;
+                scoreEl.innerText = score;
+                selectedBtn.classList.add('correct');
+            } else {
+                selectedBtn.classList.add('incorrect');
+            }
+
+            Array.from(answerButtonsEl.children).forEach(button => {
+                if (button.dataset.correct === "true") {
+                    button.classList.add('correct');
+                }
+                button.disabled = true;
+            });
+
+            nextBtn.classList.remove('hidden');
+        }
+
+        function handleNextButton() {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < quizData.length) {
+                showQuestion();
+            } else {
+                showResult();
+            }
+        }
+
+        function showResult() {
+            quizContainer.classList.add('hidden');
+            resultContainer.classList.remove('hidden');
+
+            const totalQuestions = quizData.length;
+            const scorePercentage = Math.round((score / totalQuestions) * 100);
+
+            finalScoreEl.innerText = `${scorePercentage}%`;
+
+            if (scorePercentage >= PASSING_PERCENTAGE) {
+                resultTitleEl.innerText = "🎉 Selamat, Anda Lulus! 🎉";
+                resultTitleEl.classList.add('text-green-600');
+                resultTitleEl.classList.remove('text-red-600');
+                resultMessageEl.innerText = `Anda menjawab ${score} dari ${totalQuestions} pertanyaan dengan benar. Pertahankan prestasimu!`;
+                retryBtn.innerText = "Kembali ke Awal";
+            } else {
+                resultTitleEl.innerText = "😥 Anda Harus Mengulang 😥";
+                resultTitleEl.classList.add('text-red-600');
+                resultTitleEl.classList.remove('text-green-600');
+                resultMessageEl.innerText = `Skor Anda belum mencapai ambang batas kelulusan (${PASSING_PERCENTAGE}%). Silakan tonton kembali video dan coba lagi.`;
+                retryBtn.innerText = "Ulangi Pembelajaran & Kuis";
+            }
+        }
+
+        function restartQuiz() {
+            // Reset semuanya dan kembali ke halaman awal
+            location.reload();
+        }
+    </script>
+</body>
+</html>
