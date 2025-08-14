@@ -221,8 +221,16 @@
 
         // --- FUNGSI UTAMA: MEMANGGIL GEMINI API ---
         async function callGeminiAPI(text) {
-            // API Key dibiarkan kosong, akan diisi otomatis oleh environment
-            const apiKey = ""; 
+            // =======================================================================
+            // PENTING: Ganti teks di bawah ini dengan Kunci API Anda
+            // =======================================================================
+            const apiKey = "KUNCI_API_ANDA_DI_SINI"; 
+            // =======================================================================
+            
+            if (apiKey === "AIzaSyBRUwWF-4RzTBrp5zep4zVpcT-cbK4LHMQ") {
+                throw new Error("Kunci API belum dimasukkan. Mohon edit file dan masukkan kunci API Anda.");
+            }
+
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
             const prompt = `
@@ -383,7 +391,7 @@
             finalScoreEl.innerText = `${scorePercentage}%`;
 
             if (scorePercentage >= PASSING_PERCENTAGE) {
-                resultTitleEl.innerText = "🎉 Selamat, Anda Lulus! 🎉";
+                resultTitleEl.innerText = "🎉 Selamat, Anda Lulus! �";
                 resultTitleEl.classList.add('text-green-600');
                 resultTitleEl.classList.remove('text-red-600');
                 resultMessageEl.innerText = `Anda menjawab ${score} dari ${totalQuestions} pertanyaan dengan benar. Pertahankan prestasimu!`;
@@ -404,3 +412,4 @@
     </script>
 </body>
 </html>
+�
