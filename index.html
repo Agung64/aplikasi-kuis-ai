@@ -92,7 +92,6 @@
 
         <!-- Bagian Kuis -->
         <div id="quiz-container" class="hidden">
-            <!-- Konten kuis sama seperti sebelumnya -->
             <div class="bg-slate-50 p-6 rounded-xl border border-slate-200 mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl md:text-2xl font-bold text-slate-900">Pertanyaan <span id="question-number"></span> dari 20</h2>
@@ -122,43 +121,33 @@
     </div>
 
     <script>
-        // Variabel global untuk menampung data kuis yang dibuat oleh AI
         let quizData = [];
-
-        // Elemen-elemen UI
         const setupContainer = document.getElementById('setup-container');
         const videoQuizMakerContainer = document.getElementById('video-quiz-maker-container');
         const quizContainer = document.getElementById('quiz-container');
         const resultContainer = document.getElementById('result-container');
         const loadingContainer = document.getElementById('loading-container');
-        
         const loadVideoBtn = document.getElementById('load-video-btn');
         const youtubeUrlInput = document.getElementById('youtube-url');
         const youtubePlayer = document.getElementById('youtube-player');
-        
         const transcriptInput = document.getElementById('transcript-input');
         const generateQuizBtn = document.getElementById('generate-quiz-btn');
         const startQuizBtn = document.getElementById('start-quiz-btn');
-        
         const questionNumberEl = document.getElementById('question-number');
         const scoreEl = document.getElementById('score');
         const questionTextEl = document.getElementById('question-text');
         const answerButtonsEl = document.getElementById('answer-buttons');
         const nextBtn = document.getElementById('next-btn');
-        
         const resultTitleEl = document.getElementById('result-title');
         const resultMessageEl = document.getElementById('result-message');
         const finalScoreEl = document.getElementById('final-score');
         const retryBtn = document.getElementById('retry-btn');
-
         const messageBox = document.getElementById('message-box');
         const messageText = document.getElementById('message-text');
-
         let currentQuestionIndex = 0;
         let score = 0;
         const PASSING_PERCENTAGE = 70;
 
-        // Fungsi untuk menampilkan pesan error
         function showMessage(message, isError = true) {
             messageText.innerText = message;
             messageBox.classList.remove('hidden', 'bg-red-500', 'bg-green-500');
@@ -168,14 +157,12 @@
             }, 5000);
         }
 
-        // Fungsi untuk mengekstrak ID video dari URL YouTube
         function getYoutubeVideoId(url) {
             const youtubeRegex = /(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/(?:[^\/\n\s]+\/\S+\/|(?:v|e(?:mbed)?)\/|\S*?[?&]v=)|youtu\.be\/)([a-zA-Z0-9_-]{11})/;
             const match = url.match(youtubeRegex);
             return match ? match[1] : null;
         }
 
-        // Event listener untuk tombol muat video
         loadVideoBtn.addEventListener('click', () => {
             const url = youtubeUrlInput.value;
             const videoId = getYoutubeVideoId(url);
@@ -188,26 +175,21 @@
             }
         });
 
-        // Event listener untuk tombol buat kuis dengan AI
         generateQuizBtn.addEventListener('click', async () => {
             const transcript = transcriptInput.value.trim();
             if (transcript.length < 100) {
                 showMessage('Transkrip terlalu pendek. Mohon tempelkan transkrip yang lebih lengkap.');
                 return;
             }
-            
             loadingContainer.classList.remove('hidden');
             generateQuizBtn.disabled = true;
             generateQuizBtn.classList.add('opacity-50', 'cursor-not-allowed');
-
             try {
-                // Panggil Gemini API untuk membuat pertanyaan
                 const generatedQuestions = await callGeminiAPI(transcript);
                 if (generatedQuestions && generatedQuestions.length > 0) {
                     quizData = generatedQuestions;
                     showMessage(`Berhasil membuat ${quizData.length} pertanyaan!`, false);
                     startQuizBtn.classList.remove('hidden');
-                    // Sembunyikan tombol generate dan textarea setelah berhasil
                     generateQuizBtn.parentElement.classList.add('hidden');
                 } else {
                     throw new Error("AI tidak dapat menghasilkan pertanyaan dari teks yang diberikan.");
@@ -222,97 +204,92 @@
             }
         });
 
-       // --- FUNGSI UTAMA: MEMANGGIL GEMINI API ---
-async function callGeminiAPI(text) {
-    // =======================================================================
-    // PENTING: Pastikan kunci API Anda sudah benar di bawah ini
-    // =======================================================================
-    const apiKey = "AIzaSyBPYzOGvSkP6hX4FA4Nc16P-KAb_dDElRA"; 
-    // =======================================================================
-    
-    // Baris 'if' yang menyebabkan error sudah dihapus.
+        async function callGeminiAPI(text) {
+            // =======================================================================
+            // PENTING: Ganti teks di bawah ini dengan Kunci API Anda
+            // =======================================================================
+            const apiKey = "AIzaSyBPYzOGvSkP6hX4FA4Nc16P-KAb_dDElRA"; 
+            // =======================================================================
+            
+            if (apiKey === "KUNCI_API_ANDA_DI_SINI" || apiKey === "") {
+                throw new Error("Kunci API belum dimasukkan. Mohon edit file dan masukkan kunci API Anda.");
+            }
 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-    const prompt = `
-        Berdasarkan transkrip video berikut, buatlah 20 pertanyaan kuis pilihan ganda dalam Bahasa Indonesia. 
-        Setiap pertanyaan harus memiliki 4 pilihan jawaban, dan hanya satu jawaban yang benar.
-        Pastikan pertanyaan relevan dengan isi transkrip.
-        
-        Transkrip:
-        ---
-        ${text}
-        ---
-    `;
-
-    const payload = {
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: "ARRAY",
-                description: "Daftar 20 pertanyaan kuis.",
-                items: {
-                    type: "OBJECT",
-                    properties: {
-                        question: { type: "STRING", description: "Teks pertanyaan." },
-                        answers: {
-                            type: "ARRAY",
-                            description: "Daftar 4 pilihan jawaban.",
-                            items: {
-                                type: "OBJECT",
-                                properties: {
-                                    text: { type: "STRING", description: "Teks pilihan jawaban." },
-                                    correct: { type: "BOOLEAN", description: "Menandakan apakah jawaban ini benar." }
-                                },
-                                required: ["text", "correct"]
-                            }
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const prompt = `
+                Berdasarkan transkrip video berikut, buatlah 20 pertanyaan kuis pilihan ganda dalam Bahasa Indonesia. 
+                Setiap pertanyaan harus memiliki 4 pilihan jawaban, dan hanya satu jawaban yang benar.
+                Pastikan pertanyaan relevan dengan isi transkrip.
+                
+                Transkrip:
+                ---
+                ${text}
+                ---
+            `;
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        description: "Daftar 20 pertanyaan kuis.",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                question: { type: "STRING", description: "Teks pertanyaan." },
+                                answers: {
+                                    type: "ARRAY",
+                                    description: "Daftar 4 pilihan jawaban.",
+                                    items: {
+                                        type: "OBJECT",
+                                        properties: {
+                                            text: { type: "STRING", description: "Teks pilihan jawaban." },
+                                            correct: { type: "BOOLEAN", description: "Menandakan apakah jawaban ini benar." }
+                                        },
+                                        required: ["text", "correct"]
+                                    }
+                                }
+                            },
+                            required: ["question", "answers"]
                         }
-                    },
-                    required: ["question", "answers"]
+                    }
+                }
+            };
+            
+            let response;
+            let retries = 3;
+            let delay = 1000;
+            while (retries > 0) {
+                try {
+                    response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    if (response.ok) {
+                        const result = await response.json();
+                        if (result.candidates && result.candidates.length > 0) {
+                            const responseText = result.candidates[0].content.parts[0].text;
+                            return JSON.parse(responseText);
+                        } else {
+                             throw new Error("Respons dari API tidak valid atau kosong.");
+                        }
+                    } else {
+                        const errorResult = await response.json();
+                        throw new Error(errorResult.error?.message || `HTTP error! status: ${response.status}`);
+                    }
+                } catch (error) {
+                    retries--;
+                    if (retries === 0) throw error;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    delay *= 2;
                 }
             }
         }
-    };
-    
-    // Implementasi exponential backoff untuk retry
-    let response;
-    let retries = 3;
-    let delay = 1000;
-    while (retries > 0) {
-        try {
-            response = await fetch(apiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-
-            if (response.ok) {
-                const result = await response.json();
-                const responseText = result.candidates[0].content.parts[0].text;
-                return JSON.parse(responseText);
-            } else if (response.status === 429 || response.status >= 500) {
-                // Retry for rate limiting or server errors
-                throw new Error(`HTTP error! status: ${response.status}`);
-            } else {
-                // Don't retry for other client-side errors
-                const errorResult = await response.json();
-                throw new Error(errorResult.error?.message || `HTTP error! status: ${response.status}`);
-            }
-        } catch (error) {
-            retries--;
-            if (retries === 0) throw error;
-            await new Promise(resolve => setTimeout(resolve, delay));
-            delay *= 2;
-        }
-    }
-}
-// --- AKHIR FUNGSI GEMINI API ---
-        // --- AKHIR FUNGSI GEMINI API ---
 
         startQuizBtn.addEventListener('click', startQuiz);
         nextBtn.addEventListener('click', handleNextButton);
-        retryBtn.addEventListener('click', restartQuiz);
+        retryBtn.addEventListener('click', () => location.reload());
 
         function startQuiz() {
             if (quizData.length === 0) {
@@ -332,13 +309,12 @@ async function callGeminiAPI(text) {
             const currentQuestion = quizData[currentQuestionIndex];
             questionNumberEl.innerText = currentQuestionIndex + 1;
             questionTextEl.innerText = currentQuestion.question;
-
             currentQuestion.answers.forEach(answer => {
                 const button = document.createElement('button');
                 button.innerText = answer.text;
                 button.classList.add('answer-btn', 'w-full', 'p-4', 'border-2', 'rounded-lg', 'text-left', 'hover:bg-indigo-100', 'hover:border-indigo-400');
                 if (answer.correct) {
-                    button.dataset.correct = answer.correct;
+                    button.dataset.correct = "true";
                 }
                 button.addEventListener('click', selectAnswer);
                 answerButtonsEl.appendChild(button);
@@ -355,7 +331,6 @@ async function callGeminiAPI(text) {
         function selectAnswer(e) {
             const selectedBtn = e.target;
             const isCorrect = selectedBtn.dataset.correct === "true";
-
             if (isCorrect) {
                 score++;
                 scoreEl.innerText = score;
@@ -363,14 +338,12 @@ async function callGeminiAPI(text) {
             } else {
                 selectedBtn.classList.add('incorrect');
             }
-
             Array.from(answerButtonsEl.children).forEach(button => {
                 if (button.dataset.correct === "true") {
                     button.classList.add('correct');
                 }
                 button.disabled = true;
             });
-
             nextBtn.classList.remove('hidden');
         }
 
@@ -386,12 +359,9 @@ async function callGeminiAPI(text) {
         function showResult() {
             quizContainer.classList.add('hidden');
             resultContainer.classList.remove('hidden');
-
             const totalQuestions = quizData.length;
             const scorePercentage = Math.round((score / totalQuestions) * 100);
-
             finalScoreEl.innerText = `${scorePercentage}%`;
-
             if (scorePercentage >= PASSING_PERCENTAGE) {
                 resultTitleEl.innerText = "🎉 Selamat, Anda Lulus! 🎉";
                 resultTitleEl.classList.add('text-green-600');
@@ -406,13 +376,6 @@ async function callGeminiAPI(text) {
                 retryBtn.innerText = "Ulangi Pembelajaran & Kuis";
             }
         }
-
-        function restartQuiz() {
-            // Reset semuanya dan kembali ke halaman awal
-            location.reload();
-        }
     </script>
 </body>
 </html>
-
-
