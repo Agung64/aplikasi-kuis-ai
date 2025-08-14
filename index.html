@@ -222,93 +222,92 @@
             }
         });
 
-        // --- FUNGSI UTAMA: MEMANGGIL GEMINI API ---
-        async function callGeminiAPI(text) {
-            // =======================================================================
-            // PENTING: Ganti teks di bawah ini dengan Kunci API Anda
-            // =======================================================================
-            const apiKey = "AIzaSyBPYzOGvSkP6hX4FA4Nc16P-KAb_dDElRA"; 
-            // =======================================================================
-            
-            if (apiKey === "AIzaSyBPYzOGvSkP6hX4FA4Nc16P-KAb_dDElRA") {
-                throw new Error("Kunci API belum dimasukkan. Mohon edit file dan masukkan kunci API Anda.");
-            }
+       // --- FUNGSI UTAMA: MEMANGGIL GEMINI API ---
+async function callGeminiAPI(text) {
+    // =======================================================================
+    // PENTING: Pastikan kunci API Anda sudah benar di bawah ini
+    // =======================================================================
+    const apiKey = "AIzaSyBPYzOGvSkP6hX4FA4Nc16P-KAb_dDElRA"; 
+    // =======================================================================
+    
+    // Baris 'if' yang menyebabkan error sudah dihapus.
 
-            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
-            const prompt = `
-                Berdasarkan transkrip video berikut, buatlah 20 pertanyaan kuis pilihan ganda dalam Bahasa Indonesia. 
-                Setiap pertanyaan harus memiliki 4 pilihan jawaban, dan hanya satu jawaban yang benar.
-                Pastikan pertanyaan relevan dengan isi transkrip.
-                
-                Transkrip:
-                ---
-                ${text}
-                ---
-            `;
+    const prompt = `
+        Berdasarkan transkrip video berikut, buatlah 20 pertanyaan kuis pilihan ganda dalam Bahasa Indonesia. 
+        Setiap pertanyaan harus memiliki 4 pilihan jawaban, dan hanya satu jawaban yang benar.
+        Pastikan pertanyaan relevan dengan isi transkrip.
+        
+        Transkrip:
+        ---
+        ${text}
+        ---
+    `;
 
-            const payload = {
-                contents: [{ role: "user", parts: [{ text: prompt }] }],
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: {
-                        type: "ARRAY",
-                        description: "Daftar 20 pertanyaan kuis.",
-                        items: {
-                            type: "OBJECT",
-                            properties: {
-                                question: { type: "STRING", description: "Teks pertanyaan." },
-                                answers: {
-                                    type: "ARRAY",
-                                    description: "Daftar 4 pilihan jawaban.",
-                                    items: {
-                                        type: "OBJECT",
-                                        properties: {
-                                            text: { type: "STRING", description: "Teks pilihan jawaban." },
-                                            correct: { type: "BOOLEAN", description: "Menandakan apakah jawaban ini benar." }
-                                        },
-                                        required: ["text", "correct"]
-                                    }
-                                }
-                            },
-                            required: ["question", "answers"]
+    const payload = {
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        generationConfig: {
+            responseMimeType: "application/json",
+            responseSchema: {
+                type: "ARRAY",
+                description: "Daftar 20 pertanyaan kuis.",
+                items: {
+                    type: "OBJECT",
+                    properties: {
+                        question: { type: "STRING", description: "Teks pertanyaan." },
+                        answers: {
+                            type: "ARRAY",
+                            description: "Daftar 4 pilihan jawaban.",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    text: { type: "STRING", description: "Teks pilihan jawaban." },
+                                    correct: { type: "BOOLEAN", description: "Menandakan apakah jawaban ini benar." }
+                                },
+                                required: ["text", "correct"]
+                            }
                         }
-                    }
-                }
-            };
-            
-            // Implementasi exponential backoff untuk retry
-            let response;
-            let retries = 3;
-            let delay = 1000;
-            while (retries > 0) {
-                try {
-                    response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        const responseText = result.candidates[0].content.parts[0].text;
-                        return JSON.parse(responseText);
-                    } else if (response.status === 429 || response.status >= 500) {
-                        // Retry for rate limiting or server errors
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    } else {
-                        // Don't retry for other client-side errors
-                        const errorResult = await response.json();
-                        throw new Error(errorResult.error?.message || `HTTP error! status: ${response.status}`);
-                    }
-                } catch (error) {
-                    retries--;
-                    if (retries === 0) throw error;
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    delay *= 2;
+                    },
+                    required: ["question", "answers"]
                 }
             }
         }
+    };
+    
+    // Implementasi exponential backoff untuk retry
+    let response;
+    let retries = 3;
+    let delay = 1000;
+    while (retries > 0) {
+        try {
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const responseText = result.candidates[0].content.parts[0].text;
+                return JSON.parse(responseText);
+            } else if (response.status === 429 || response.status >= 500) {
+                // Retry for rate limiting or server errors
+                throw new Error(`HTTP error! status: ${response.status}`);
+            } else {
+                // Don't retry for other client-side errors
+                const errorResult = await response.json();
+                throw new Error(errorResult.error?.message || `HTTP error! status: ${response.status}`);
+            }
+        } catch (error) {
+            retries--;
+            if (retries === 0) throw error;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2;
+        }
+    }
+}
+// --- AKHIR FUNGSI GEMINI API ---
         // --- AKHIR FUNGSI GEMINI API ---
 
         startQuizBtn.addEventListener('click', startQuiz);
@@ -415,4 +414,5 @@
     </script>
 </body>
 </html>
+
 
