@@ -45,7 +45,10 @@
         <!-- Bagian Judul dan Input URL -->
         <div id="setup-container">
             <h1 class="text-3xl md:text-4xl font-bold text-center text-slate-900 mb-2">Platform Kuis Interaktif (AI)</h1>
-            <p class="text-center text-slate-500 mb-8">Masukkan link video YouTube, tonton materi, lalu uji pemahaman Anda!</p>
+            <p class="text-center text-slate-500 mb-4">Masukkan link video YouTube, tonton materi, lalu uji pemahaman Anda!</p>
+            <div class="text-center mb-8">
+                <p class="inline-block bg-blue-600 text-white font-bold text-sm py-2 px-4 rounded-lg shadow-md">Dibuat Oleh : IR. R. AGUNG EKO PITONO, MT tanggal 14-08-2025</p>
+            </div>
             
             <div class="flex flex-col sm:flex-row gap-3">
                 <input type="text" id="youtube-url" placeholder="Contoh: https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="flex-grow p-3 border-2 border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition">
@@ -224,10 +227,10 @@
             // =======================================================================
             // PENTING: Ganti teks di bawah ini dengan Kunci API Anda
             // =======================================================================
-            const apiKey = "AIzaSyBRUwWF-4RzTBrp5zep4zVpcT-cbK4LHMQ"; 
+            const apiKey = "KUNCI_API_ANDA_DI_SINI"; 
             // =======================================================================
             
-            if (apiKey === "AIzaSyBv1-0nd2LkVLvewv5sB-g6DiNUHYCo0UE") {
+            if (apiKey === "KUNCI_API_ANDA_DI_SINI") {
                 throw new Error("Kunci API belum dimasukkan. Mohon edit file dan masukkan kunci API Anda.");
             }
 
@@ -391,7 +394,7 @@
             finalScoreEl.innerText = `${scorePercentage}%`;
 
             if (scorePercentage >= PASSING_PERCENTAGE) {
-                resultTitleEl.innerText = "🎉 Selamat, Anda Lulus! �";
+                resultTitleEl.innerText = "🎉 Selamat, Anda Lulus! 🎉";
                 resultTitleEl.classList.add('text-green-600');
                 resultTitleEl.classList.remove('text-red-600');
                 resultMessageEl.innerText = `Anda menjawab ${score} dari ${totalQuestions} pertanyaan dengan benar. Pertahankan prestasimu!`;
@@ -412,4 +415,3 @@
     </script>
 </body>
 </html>
-�
